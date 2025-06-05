@@ -25,7 +25,7 @@ A command-line utility written in Python to organize files within a specified di
 2.  Clone this repository or download the `organizer.py` script.
     ```bash
     # If you plan to clone (after pushing to GitHub)
-    # git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
+    # git clone https://github.com/gugumadonsela/python-file-organizer.git
     # cd YOUR_REPOSITORY_NAME
     ```
 3.  No external libraries need to be installed beyond what comes with Python.
@@ -75,4 +75,3 @@ py organizer.py C:\path\to\your\messy_folder
     ## Author
 
     *   Gugu Madonsela - https://github.com/gugumadonsela
-    
