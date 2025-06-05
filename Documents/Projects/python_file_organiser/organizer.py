@@ -1,8 +1,7 @@
 import os
-import shutil 
+import shutil
 import argparse
 
-# --- START OF MISSING PART 1 ---
 # Define file categories and their associated extensions
 FILE_CATEGORIES = {
     "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".svg", ".webp", ".heic"],
@@ -15,7 +14,6 @@ FILE_CATEGORIES = {
     # Add more categories and extensions as you see fit
     "Other": [] # Catch-all for unknown extensions
 }
-# --- END OF MISSING PART 1 ---
 
 def organize_files(directory_path):
     print(f"Attempting to organize files in: {directory_path}")
@@ -27,47 +25,87 @@ def organize_files(directory_path):
 
     # 2. List files in the directory
     try:
-        # List all entries, then filter for files only
+        # List all entries, then filter for files only directly within the target directory
         entries = os.listdir(directory_path)
-        files = [f for f in entries if os.path.isfile(os.path.join(directory_path, f))]
+        files_in_root_dir = [f for f in entries if os.path.isfile(os.path.join(directory_path, f))]
         
-        if not files:
-            print("No files found in the directory to organize.")
+        if not files_in_root_dir:
+            print("No files found directly in the root of the directory to organize.")
             return
-        print(f"Found files: {files}")
+        print(f"Found files in root: {files_in_root_dir}")
 
-       
-        # THIS IS THE CRUCIAL PART THAT PROCESSES EACH FILE
-        for filename in files:
+        # Iterate over the files found directly in the directory_path
+        for original_filename in files_in_root_dir:
+            
             # Optional: ignore hidden files (files starting with a dot)
-            if filename.startswith('.'):
-                print(f"Skipping hidden file: {filename}")
+            if original_filename.startswith('.'):
+                print(f"Skipping hidden file: {original_filename}")
                 continue
 
-            # Construct the full path to the file
-            file_path = os.path.join(directory_path, filename)
+            # Construct the full path to the source file
+            source_file_path = os.path.join(directory_path, original_filename)
 
             # Get the file extension
-            _ , extension = os.path.splitext(filename) # The first part (name) is not needed here, hence '_'
+            _ , extension = os.path.splitext(original_filename) 
             extension = extension.lower() # Normalize to lowercase for consistent matching
 
             # Determine the target category
             target_category_name = "Other" # Default category if no match is found
-            for category_name, extensions_list in FILE_CATEGORIES.items():
+            for category_name_iter, extensions_list in FILE_CATEGORIES.items():
                 if extension in extensions_list:
-                    target_category_name = category_name
+                    target_category_name = category_name_iter
                     break # Found a category, no need to check further for this file
             
-            print(f"File: {filename}, Extension: {extension}, Determined Category: {target_category_name}")
+            print(f"File: {original_filename}, Extension: {extension}, Determined Category: {target_category_name}")
             
-            # --- Logic to create folder and move file will go here in the next step ---
-        
+            # Construct the full path for the target category folder
+            target_folder_path = os.path.join(directory_path, target_category_name)
+
+            # Create target category folder if it doesn't exist
+            try:
+                if not os.path.exists(target_folder_path):
+                    os.makedirs(target_folder_path)
+                    print(f"Created directory: {target_folder_path}")
+            except OSError as e:
+                print(f"Error creating directory {target_folder_path}: {e}. Skipping file {original_filename}.")
+                continue # Skip to the next file if folder creation fails
+
+            # Prepare filename for destination (might be changed if file exists)
+            current_filename_for_dest = original_filename
+            destination_file_path = os.path.join(target_folder_path, current_filename_for_dest)
+
+            # --- SAFETY CHECK: Avoid overwriting files ---
+            # If a file with the same name already exists in the target folder,
+            # rename the new file to avoid overwriting.
+            count = 1
+            name_part, ext_part = os.path.splitext(original_filename)
+            while os.path.exists(destination_file_path):
+                # If "file.txt" exists, try "file (1).txt", then "file (2).txt", etc.
+                current_filename_for_dest = f"{name_part} ({count}){ext_part}"
+                destination_file_path = os.path.join(target_folder_path, current_filename_for_dest)
+                count += 1
+            # --- END SAFETY CHECK ---
+
+            # Move the file
+            try:
+                shutil.move(source_file_path, destination_file_path)
+                if original_filename != current_filename_for_dest: # If we renamed the file
+                     print(f"Moved '{original_filename}' to '{target_category_name}/{current_filename_for_dest}' (renamed to avoid overwrite)")
+                else:
+                    print(f"Moved '{original_filename}' to '{target_category_name}/'")
+            except OSError as e:
+                print(f"Error moving file {original_filename}: {e}")
+            except Exception as e: # Catch any other unexpected errors during move
+                print(f"An unexpected error occurred while moving {original_filename}: {e}")
 
     except PermissionError:
         print(f"Error: Permission denied to access directory '{directory_path}'.")
         return
     except OSError as e:
         print(f"Error accessing directory contents: {e}")
+        return
+    except Exception as e: # General catch-all for unexpected errors
+        print(f"An unexpected error occurred: {e}")
         return
 
 if __name__ == "__main__":
